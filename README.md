@@ -21,16 +21,18 @@ The game features a unique **inertial drift movement system**, requiring players
 - **🎧 Procedural Audio**: A custom `SoundEngine` class synthesizes all sound effects (echoing roars, musical chimes, ambient drones) in real-time using the Web Audio API. No MP3/WAV assets required.
 - **💾 Persistence**: High scores, max levels, and best speedrun times are saved locally via `localStorage`.
 - **🎨 2.5D Aesthetics**: Parallax dust particles, glowing bloom effects, and dynamic lighting create a sense of depth on a 2D canvas.
+- **⌨️ Keyboard Support**: Arrow keys and WASD for desktop players.
 
 ## 🕹️ Controls
 
-The game is designed for **Touch and Mouse** input, functioning as a virtual joystick.
+The game supports both **Touch/Mouse** and **Keyboard** input.
 
-| Action | Input |
-| :--- | :--- |
-| **Move** | Click/Touch and drag anywhere on the screen. The further you drag, the faster you accelerate. |
-| **Stop** | Release to let friction take over. |
-| **Objective** | Follow the **Blue Chevron Arrow** to find the exit portal. |
+| Action | Touch/Mouse | Keyboard |
+| :--- | :--- | :--- |
+| **Move** | Click/Touch and drag anywhere | Arrow keys or WASD |
+| **Stop** | Release to let friction take over | Release keys |
+| **Pause** | Tap pause button | - |
+| **Objective** | Follow the **Blue Chevron Arrow** to find the exit portal |
 
 ## 🎮 How to Play
 
@@ -51,25 +53,33 @@ npm run dev  # Starts local development server
 
 ### Prerequisites
 - Node.js (v16+)
-- npm or yarn
-- Node.js (for build script)
-- Cloudflare Wrangler (for deployment)
+- npm
 
 ### Project Structure
 The project uses a modular architecture that builds into a single file:
 ```
 src/
-├── game/           # Game modules (Logic, Entities, Systems)
+├── game/
+│   ├── core/       # Constants, state management, game loop
+│   ├── entities/   # Cell, Dragon, Particle classes
+│   ├── systems/    # DataManager, MazeGenerator, Renderer, SoundEngine
+│   ├── ui/         # HUD, QuirkyMessages, ScreenManager
+│   └── utils/      # Helper functions
 ├── styles/         # CSS styles
 ├── templates/      # HTML template
-└── build/          # Build scripts
+├── game_html.js    # Bundled output (auto-generated)
+└── index.js        # Cloudflare Worker entry point
+build/
+└── bundle-game.js  # Build script
+scripts/
+└── generate-standalone.js  # Standalone HTML generator
 ```
 
 ### Build Commands
 - **`npm run build:bundle`**: Compiles modules into `src/game_html.js` (for Worker)
-- **`npm run build:standalone`**: Generates `dist/crystal_cave.html` (for local testing)
+- **`npm run build:standalone`**: Generates `dist/crystal_cave.html` (for local play)
 - **`npm run build`**: Runs both build steps
-- **`npm run dev`**: Starts local Wrangler development server
+- **`npm run dev`**: Starts local Wrangler development server at http://localhost:8787
 
 ### Deployment
 ```bash
@@ -78,7 +88,7 @@ npm run deploy
 
 ## 🛠️ Technical Deep Dive
 
-For developers interested in how this works under the hood, the entire game logic resides in a single `crystal_cave.html` file (~800 lines of code).
+For developers interested in how this works under the hood, the game is built from ~2100 lines of modular JavaScript that bundles into a single HTML file (~61KB).
 
 ### 1. The Game Loop
 The game uses a standard `requestAnimationFrame` loop. It separates logic into `update()` (physics, AI, collision) and `draw()` (rendering to HTML5 Canvas).
