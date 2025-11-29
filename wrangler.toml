@@ -1,0 +1,6 @@
+name = "crystal-cave"
+main = "src/index.js"
+compatibility_date = "2024-11-29"
+
+[observability]
+enabled = true
