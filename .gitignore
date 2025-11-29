@@ -7,6 +7,9 @@ yarn-error.log
 .wrangler/
 .dev.vars
 
+# Build output
+dist/
+
 # OS
 .DS_Store
 Thumbs.db

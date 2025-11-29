@@ -395,6 +395,8 @@ function showQuirky(category) {
     const text = msgs[Math.floor(Math.random() * msgs.length)];
     
     const el = document.getElementById('quirky-msg');
+    // SECURITY: Using .innerText instead of .innerHTML to prevent XSS
+    // If extending this system to accept user input, add sanitization!
     el.innerText = text;
     el.classList.add('visible');
     
@@ -414,73 +416,279 @@ function showQuirky(category) {
 class DataManager {
     constructor() {
         this.data = { maxLevel: 1, totalShards: 0, bestTimes: {} };
+        this.persistenceAvailable = true;
+        this.storageKey = 'crystal_cave_data';
         this.load();
     }
-    load() {
+    
+    /**
+     * Check if localStorage is available and working
+     * @returns {boolean} True if localStorage is available
+     */
+    _isStorageAvailable() {
         try {
-            const saved = localStorage.getItem('crystal_cave_data');
-            if (saved) this.data = JSON.parse(saved);
-        } catch (e) {}
+            const testKey = '__storage_test__';
+            localStorage.setItem(testKey, 'test');
+            localStorage.removeItem(testKey);
+            return true;
+        } catch (e) {
+            console.warn('localStorage is not available:', e.message);
+            return false;
+        }
     }
+    
+    /**
+     * Load saved game data from localStorage
+     */
+    load() {
+        if (!this._isStorageAvailable()) {
+            this.persistenceAvailable = false;
+            console.warn('Game progress will not be saved (localStorage unavailable)');
+            return;
+        }
+        
+        try {
+            const saved = localStorage.getItem(this.storageKey);
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                // Validate data structure
+                if (parsed && typeof parsed === 'object') {
+                    this.data = {
+                        maxLevel: parsed.maxLevel || 1,
+                        totalShards: parsed.totalShards || 0,
+                        bestTimes: parsed.bestTimes || {}
+                    };
+                }
+            }
+        } catch (e) {
+            console.error('Failed to load game data:', e.message);
+            // Data is corrupted, reset to defaults
+            this.data = { maxLevel: 1, totalShards: 0, bestTimes: {} };
+        }
+    }
+    
+    /**
+     * Save game data to localStorage
+     * @returns {boolean} True if save was successful
+     */
     save() {
-        try { localStorage.setItem('crystal_cave_data', JSON.stringify(this.data)); } catch (e) {}
+        if (!this.persistenceAvailable) {
+            return false;
+        }
+        
+        try {
+            const serialized = JSON.stringify(this.data);
+            localStorage.setItem(this.storageKey, serialized);
+            return true;
+        } catch (e) {
+            // Handle quota exceeded error
+            if (e.name === 'QuotaExceededError') {
+                console.error('localStorage quota exceeded. Cannot save game progress.');
+                this.persistenceAvailable = false;
+                // Notify user (shown once)
+                if (!this._quotaWarningShown) {
+                    this._quotaWarningShown = true;
+                    setTimeout(() => {
+                        alert('⚠️ Storage quota exceeded. Your progress cannot be saved.');
+                    }, 100);
+                }
+            } else {
+                console.error('Failed to save game data:', e.message);
+            }
+            return false;
+        }
     }
-    updateLevel(lvl) { if (lvl > this.data.maxLevel) { this.data.maxLevel = lvl; this.save(); } }
-    addShards(count) { this.data.totalShards += count; this.save(); }
+    
+    updateLevel(lvl) {
+        if (lvl > this.data.maxLevel) {
+            this.data.maxLevel = lvl;
+            return this.save();
+        }
+        return true;
+    }
+    
+    addShards(count) {
+        this.data.totalShards += count;
+        return this.save();
+    }
+    
     saveTime(lvl, timeMs) {
         if (!this.data.bestTimes[lvl] || timeMs < this.data.bestTimes[lvl]) {
-            this.data.bestTimes[lvl] = timeMs; this.save(); return true;
-        } return false;
+            this.data.bestTimes[lvl] = timeMs;
+            this.save();
+            return true;
+        }
+        return false;
     }
-    getBestTime(lvl) { return this.data.bestTimes[lvl] || null; }
+    
+    getBestTime(lvl) {
+        return this.data.bestTimes[lvl] || null;
+    }
 }
 const gameData = new DataManager();
 
 class SoundEngine {
-    constructor() { this.ctx = null; this.muted = false; this.masterGain = null; this.delayNode = null; this.notes = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25]; }
+    constructor() {
+        this.ctx = null;
+        this.muted = false;
+        this.masterGain = null;
+        this.delayNode = null;
+        this.notes = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25];
+        this.initialized = false;
+        this.droneOsc = null;
+        this.droneLfo = null;
+    }
+    
+    /**
+     * Initialize AudioContext and audio graph
+     * Must be called after a user gesture due to browser autoplay policies
+     */
     init() {
         if (!this.ctx) {
-            this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-            this.masterGain = this.ctx.createGain(); this.masterGain.gain.value = 0.4;
-            this.delayNode = this.ctx.createDelay(); this.delayNode.delayTime.value = 0.3;
-            const feedback = this.ctx.createGain(); feedback.gain.value = 0.4;
-            this.delayNode.connect(feedback); feedback.connect(this.delayNode);
-            this.delayNode.connect(this.masterGain); this.masterGain.connect(this.ctx.destination);
-            this.startDrone();
-        } else if (this.ctx.state === 'suspended') this.ctx.resume();
+            try {
+                // Create AudioContext
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                if (!AudioContextClass) {
+                    console.warn('Web Audio API not supported in this browser');
+                    return false;
+                }
+                
+                this.ctx = new AudioContextClass();
+                
+                // Create audio graph
+                this.masterGain = this.ctx.createGain();
+                this.masterGain.gain.value = 0.4;
+                
+                // Create delay effect for echo
+                this.delayNode = this.ctx.createDelay();
+                this.delayNode.delayTime.value = 0.3;
+                const feedback = this.ctx.createGain();
+                feedback.gain.value = 0.4;
+                this.delayNode.connect(feedback);
+                feedback.connect(this.delayNode);
+                this.delayNode.connect(this.masterGain);
+                this.masterGain.connect(this.ctx.destination);
+                
+                this.startDrone();
+                this.initialized = true;
+                return true;
+            } catch (e) {
+                console.error('Failed to initialize audio:', e);
+                return false;
+            }
+        } else if (this.ctx.state === 'suspended') {
+            // Resume if suspended (e.g., user gesture required)
+            this.ctx.resume().then(() => {
+                console.log('Audio context resumed');
+            }).catch(err => {
+                console.error('Failed to resume audio context:', err);
+            });
+        }
+        return true;
     }
+    
+    /**
+     * Check if audio is ready to play
+     * @returns {boolean}
+     */
+    _isAudioReady() {
+        return this.ctx && this.ctx.state === 'running' && this.initialized && !this.muted;
+    }
+    
     toggleMute() {
         this.muted = !this.muted;
-        if (this.masterGain) this.masterGain.gain.setTargetAtTime(this.muted ? 0 : 0.4, this.ctx.currentTime, 0.1);
+        if (this.masterGain) {
+            this.masterGain.gain.setTargetAtTime(this.muted ? 0 : 0.4, this.ctx.currentTime, 0.1);
+        }
         return this.muted;
     }
+    
     playTone(freq, type, duration, vol=0.5, useEcho=true) {
-        if (!this.ctx || this.muted) return;
-        const t = this.ctx.currentTime;
-        const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
-        osc.type = type; osc.frequency.setValueAtTime(freq, t);
-        gain.gain.setValueAtTime(0, t); gain.gain.linearRampToValueAtTime(vol, t + 0.05); gain.gain.exponentialRampToValueAtTime(0.01, t + duration);
-        osc.connect(gain); gain.connect(this.masterGain); if (useEcho) gain.connect(this.delayNode);
-        osc.start(t); osc.stop(t + duration);
+        if (!this._isAudioReady()) return;
+        
+        try {
+            const t = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, t);
+            gain.gain.setValueAtTime(0, t);
+            gain.gain.linearRampToValueAtTime(vol, t + 0.05);
+            gain.gain.exponentialRampToValueAtTime(0.01, t + duration);
+            
+            osc.connect(gain);
+            gain.connect(this.masterGain);
+            if (useEcho) gain.connect(this.delayNode);
+            
+            osc.start(t);
+            osc.stop(t + duration);
+        } catch (e) {
+            console.error('Error playing tone:', e);
+        }
     }
-    playCollect(index) { this.playTone(this.notes[index%this.notes.length]*(1+Math.floor(index/6)), 'sine', 0.5, 0.3, true); this.playTone(this.notes[index%this.notes.length]*2, 'triangle', 0.2, 0.1, true); }
-    playHit() { this.playTone(100, 'sawtooth', 0.5, 0.8, false); }
-    playCharge() { this.playTone(50, 'square', 0.5, 0.05, false); }
-    playRoar() { this.playTone(80, 'sawtooth', 0.8, 0.2, true); }
-    playWin() { if(!this.ctx||this.muted)return; this.notes.forEach((f,i) => setTimeout(() => this.playTone(f*2, 'sine', 0.8, 0.4), i*100)); }
+    
+    playCollect(index) {
+        this.playTone(this.notes[index % this.notes.length] * (1 + Math.floor(index / 6)), 'sine', 0.5, 0.3, true);
+        this.playTone(this.notes[index % this.notes.length] * 2, 'triangle', 0.2, 0.1, true);
+    }
+    
+    playHit() {
+        this.playTone(100, 'sawtooth', 0.5, 0.8, false);
+    }
+    
+    playCharge() {
+        this.playTone(50, 'square', 0.5, 0.05, false);
+    }
+    
+    playRoar() {
+        this.playTone(80, 'sawtooth', 0.8, 0.2, true);
+    }
+    
+    playWin() {
+        if (!this._isAudioReady()) return;
+        this.notes.forEach((f, i) => setTimeout(() => this.playTone(f * 2, 'sine', 0.8, 0.4), i * 100));
+    }
+    
     startDrone() {
-        const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
-        osc.type = 'triangle'; osc.frequency.setValueAtTime(50, this.ctx.currentTime);
-        const lfo = this.ctx.createOscillator(); lfo.frequency.value = 0.1;
-        const lfoGain = this.ctx.createGain(); lfoGain.gain.value = 10;
-        lfo.connect(lfoGain); lfoGain.connect(osc.frequency);
-        gain.gain.value = 0.15; osc.connect(gain); gain.connect(this.masterGain);
-        osc.start(); lfo.start();
+        if (!this.ctx) return;
+        
+        try {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(50, this.ctx.currentTime);
+            
+            const lfo = this.ctx.createOscillator();
+            lfo.frequency.value = 0.1;
+            const lfoGain = this.ctx.createGain();
+            lfoGain.gain.value = 10;
+            
+            lfo.connect(lfoGain);
+            lfoGain.connect(osc.frequency);
+            gain.gain.value = 0.15;
+            osc.connect(gain);
+            gain.connect(this.masterGain);
+            
+            osc.start();
+            lfo.start();
+            
+            // Keep references for cleanup if needed
+            this.droneOsc = osc;
+            this.droneLfo = lfo;
+        } catch (e) {
+            console.error('Error starting drone:', e);
+        }
     }
 }
 
 const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d', { alpha: false });
+const ctx = canvas.getContext('2d', {
+    alpha: false,  // No transparency needed - better performance
+    desynchronized: true,  // Better performance for animations
+    willReadFrequently: false  // We're not reading pixels back
+});
 const audio = new SoundEngine();
 const camera = { x: 0, y: 0 };
 
@@ -759,6 +967,12 @@ function update() {
         if (p.life <= 0) { particles.splice(i, 1); continue; }
         if (p.type === 'fire' && Math.hypot(p.x - player.x, p.y - player.y) < player.radius + p.size) handleDeath();
     }
+    
+    // Safety limit: prevent memory leaks from unbounded particle growth
+    if (particles.length > 1000) {
+        console.warn('Particle limit reached, cleaning up old particles');
+        particles = particles.filter(p => p.life > 0.1);
+    }
 
     for (let s of shards) {
         if (!s.active) continue;
@@ -908,7 +1122,28 @@ function draw() {
     }
 }
 
-function loop() { requestAnimationFrame(loop); update(); draw(); }
+function loop() {
+    requestAnimationFrame(loop);
+    
+    try {
+        update();
+        draw();
+    } catch (e) {
+        console.error('Game loop error:', e);
+        
+        // For critical errors, pause the game and notify user
+        if (gameState === 'PLAYING') {
+            gameState = 'PAUSED';
+            document.getElementById('pause-screen').classList.remove('hidden');
+            
+            // Log error details for debugging
+            console.error('Stack trace:', e.stack);
+            
+            // Optional: Show error to user for debugging
+            // alert('Game Error: ' + e.message + '\\nThe game has been paused. Check console for details.');
+        }
+    }
+}
 
 window.addEventListener('resize', resize);
 canvas.addEventListener('touchstart', e => { e.preventDefault(); let t = e.changedTouches[0]; joystick.active = true; joystick.start = { x: t.clientX, y: t.clientY }; joystick.current = { x: t.clientX, y: t.clientY }; joystick.vec = { x: 0, y: 0 }; }, {passive: false});

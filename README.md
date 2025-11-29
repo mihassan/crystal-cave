@@ -32,15 +32,45 @@ The game is designed for **Touch and Mouse** input, functioning as a virtual joy
 | **Stop** | Release to let friction take over. |
 | **Objective** | Follow the **Blue Chevron Arrow** to find the exit portal. |
 
-## � How to Play
+## 🎮 How to Play
 
-Since the game is a single HTML file, there is no installation required!
+### Option 1: Play Online (Cloudflare Workers)
+The game is deployed as a Cloudflare Worker. Visit the deployed URL to play immediately.
 
-1. Download `crystal_cave.html`.
-2. Open it in any modern web browser (Chrome, Firefox, Edge, Safari).
-3. Turn up your volume for the procedural audio experience.
+### Option 2: Download Standalone HTML
+1. Download or build `crystal_cave.html` (see Development section below)
+2. Open it in any modern web browser (Chrome, Firefox, Edge, Safari)
+3. Turn up your volume for the procedural audio experience
 
-## �🛠️ Technical Deep Dive
+### Option 3: Run Locally with Wrangler
+```bash
+npm run dev  # Starts local development server
+```
+
+## 🛠️ Development
+
+### Prerequisites
+- Node.js (v16+)
+- npm or yarn
+
+### Build Commands
+```bash
+# Install dependencies
+npm install
+
+# Run locally
+npm run dev
+
+# Generate standalone HTML file
+npm run build:standalone
+
+# Deploy to Cloudflare Workers
+npm run deploy
+```
+
+The standalone HTML file will be generated in the `dist/` directory.
+
+## 🛠️ Technical Deep Dive
 
 For developers interested in how this works under the hood, the entire game logic resides in a single `crystal_cave.html` file (~800 lines of code).
 
@@ -60,6 +90,16 @@ The game uses a standard `requestAnimationFrame` loop. It separates logic into `
 ### 3. Rendering Tricks
 - **Bloom**: Achieved by layering drawing operations with `shadowBlur` and `shadowColor` properties on the 2D context.
 - **Parallax**: Dust particles are rendered in world space but wrap around the camera view, creating an infinite background effect without heavy resource usage.
+
+## 🔒 Security & Quality Improvements
+
+Recent improvements to ensure reliability and security:
+
+- **Content Security Policy (CSP)**: Comprehensive security headers protect against XSS, clickjacking, and other injection attacks
+- **Robust Error Handling**: Game loop error boundaries prevent crashes, localStorage operations handle quota exceeded gracefully
+- **AudioContext Management**: Proper handling of browser autoplay policies with fallback mechanisms
+- **Performance Optimizations**: Canvas rendering optimizations, particle array safety limits to prevent memory leaks
+- **XSS Protection**: All dynamic content uses `.innerText` instead of `.innerHTML` for safe rendering
 
 ## 🔮 Future Roadmap
 
