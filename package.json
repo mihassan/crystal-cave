@@ -1,0 +1,20 @@
+{
+    "name": "crystal-cave",
+    "version": "1.0.0",
+    "description": "Crystal Cave: Dragon's Lair - Cloudflare Worker Edition",
+    "main": "src/index.js",
+    "scripts": {
+        "dev": "wrangler dev",
+        "deploy": "wrangler deploy"
+    },
+    "keywords": [
+        "game",
+        "cloudflare-workers",
+        "javascript"
+    ],
+    "author": "",
+    "license": "MIT",
+    "devDependencies": {
+        "wrangler": "^3.0.0"
+    }
+}
