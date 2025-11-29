@@ -52,23 +52,29 @@ npm run dev  # Starts local development server
 ### Prerequisites
 - Node.js (v16+)
 - npm or yarn
+- Node.js (for build script)
+- Cloudflare Wrangler (for deployment)
 
-### Build Commands
-```bash
-# Install dependencies
-npm install
-
-# Run locally
-npm run dev
-
-# Generate standalone HTML file
-npm run build:standalone
-
-# Deploy to Cloudflare Workers
-npm run deploy
+### Project Structure
+The project uses a modular architecture that builds into a single file:
+```
+src/
+├── game/           # Game modules (Logic, Entities, Systems)
+├── styles/         # CSS styles
+├── templates/      # HTML template
+└── build/          # Build scripts
 ```
 
-The standalone HTML file will be generated in the `dist/` directory.
+### Build Commands
+- **`npm run build:bundle`**: Compiles modules into `src/game_html.js` (for Worker)
+- **`npm run build:standalone`**: Generates `dist/crystal_cave.html` (for local testing)
+- **`npm run build`**: Runs both build steps
+- **`npm run dev`**: Starts local Wrangler development server
+
+### Deployment
+```bash
+npm run deploy
+```
 
 ## 🛠️ Technical Deep Dive
 

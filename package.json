@@ -7,7 +7,9 @@
     "scripts": {
         "dev": "wrangler dev",
         "deploy": "wrangler deploy",
-        "build:standalone": "node scripts/generate-standalone.js"
+        "build:standalone": "node scripts/generate-standalone.js",
+        "build:bundle": "node build/bundle-game.js",
+        "build": "npm run build:bundle && npm run build:standalone"
     },
     "keywords": [
         "game",
