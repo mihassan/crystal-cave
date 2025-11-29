@@ -5,6 +5,17 @@
 > **Survive the Heat. Master the Drift. Reclaim the Light.**
 
 A procedurally generated, physics-based survival maze game built entirely in a single HTML file with no external dependencies.
+*Made with ❤️ and pure JavaScript.*
+
+## ☁️ Deployment
+
+This project is configured to deploy automatically to Cloudflare Workers via GitHub Actions.
+
+### Setup
+1. **Cloudflare API Token**: Create a token with "Edit Cloudflare Workers" permissions.
+2. **GitHub Secret**: Add the token as a repository secret named `CLOUDFLARE_API_TOKEN`.
+
+[![Deploy to Cloudflare Workers](https://github.com/mihassan/crystal-cave/actions/workflows/deploy.yml/badge.svg)](https://github.com/mihassan/crystal-cave/actions/workflows/deploy.yml)
 
 ## 🎮 Overview
 
