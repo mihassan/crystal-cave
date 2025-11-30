@@ -1,19 +1,21 @@
+import { GAME_CONFIG, CRYSTAL_COLORS } from '../core/constants';
+import { Cell } from '../entities/Cell';
+import { Dragon } from '../entities/Dragon';
+import { Shard } from '../core/state';
+import { randomInt } from '../utils/helpers';
+
 /**
  * MazeGenerator - Procedural maze generation using recursive backtracking
  */
-import { Cell } from '../entities/Cell.js';
-import { Dragon } from '../entities/Dragon.js';
-import { GAME_CONFIG, CRYSTAL_COLORS } from '../core/constants.js';
-import { randomInt } from '../utils/helpers.js';
 
-export function calculateMazeSize(level) {
+export function calculateMazeSize(level: number): { cols: number; rows: number } {
     let size = GAME_CONFIG.MAZE_BASE_SIZE + ((level - 1) * GAME_CONFIG.MAZE_GROWTH_RATE);
     if (size > GAME_CONFIG.MAZE_MAX_SIZE) size = GAME_CONFIG.MAZE_MAX_SIZE;
     return { cols: size, rows: size };
 }
 
-export function generateMaze(cols, rows) {
-    const maze = [];
+export function generateMaze(cols: number, rows: number): Cell[] {
+    const maze: Cell[] = [];
 
     // Create grid
     for (let r = 0; r < rows; r++) {
@@ -23,11 +25,11 @@ export function generateMaze(cols, rows) {
     }
 
     // Recursive backtracking maze generation
-    const stack = [];
+    const stack: Cell[] = [];
     let current = maze[0];
     current.visited = true;
 
-    const idx = (c, r) => (c < 0 || r < 0 || c >= cols || r >= rows) ? -1 : c + r * cols;
+    const idx = (c: number, r: number) => (c < 0 || r < 0 || c >= cols || r >= rows) ? -1 : c + r * cols;
     const dirs = [
         { n: 'top', dr: -1, dc: 0, opp: 'bottom' },
         { n: 'right', dr: 0, dc: 1, opp: 'left' },
@@ -36,7 +38,7 @@ export function generateMaze(cols, rows) {
     ];
 
     while (true) {
-        const neighbors = [];
+        const neighbors: { cell: Cell; dir: any }[] = [];
 
         for (let d of dirs) {
             const i = idx(current.c + d.dc, current.r + d.dr);
@@ -50,13 +52,16 @@ export function generateMaze(cols, rows) {
             const next = nextInfo.cell;
 
             // Carve passage
+            // @ts-ignore
             current.walls[nextInfo.dir.n] = false;
+            // @ts-ignore
             next.walls[nextInfo.dir.opp] = false;
 
             stack.push(current);
             current = next;
             current.visited = true;
         } else if (stack.length > 0) {
+            // @ts-ignore
             current = stack.pop();
         } else {
             break; // Maze complete
@@ -66,8 +71,8 @@ export function generateMaze(cols, rows) {
     return maze;
 }
 
-export function spawnCrystalShards(maze, cols, rows, cellSize) {
-    const shards = [];
+export function spawnCrystalShards(maze: Cell[], cols: number, rows: number, _cellSize: number): Shard[] {
+    const shards: Shard[] = [];
 
     for (let i = 0; i < maze.length; i++) {
         // Skip start and goal cells
@@ -91,7 +96,7 @@ export function spawnCrystalShards(maze, cols, rows, cellSize) {
     return shards;
 }
 
-export function spawnDragon(cols, rows, playerCol, playerRow, level) {
+export function spawnDragon(cols: number, rows: number, playerCol: number, playerRow: number, level: number): Dragon {
     let attempts = 0;
 
     while (attempts < GAME_CONFIG.DRAGON_SPAWN_ATTEMPTS) {

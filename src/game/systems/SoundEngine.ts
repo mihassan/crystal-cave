@@ -2,6 +2,15 @@
  * SoundEngine - Web Audio API sound system
  */
 export class SoundEngine {
+    ctx: AudioContext | null;
+    muted: boolean;
+    masterGain: GainNode | null;
+    delayNode: DelayNode | null;
+    notes: number[];
+    initialized: boolean;
+    droneOsc: OscillatorNode | null;
+    droneLfo: OscillatorNode | null;
+
     constructor() {
         this.ctx = null;
         this.muted = false;
@@ -17,17 +26,19 @@ export class SoundEngine {
      * Initialize AudioContext and audio graph
      * Must be called after a user gesture due to browser autoplay policies
      */
-    init() {
+    init(): boolean {
         if (!this.ctx) {
             try {
                 // Create AudioContext
-                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
                 if (!AudioContextClass) {
                     console.warn('Web Audio API not supported in this browser');
                     return false;
                 }
 
                 this.ctx = new AudioContextClass();
+
+                if (!this.ctx) return false;
 
                 // Create audio graph
                 this.masterGain = this.ctx.createGain();
@@ -65,20 +76,20 @@ export class SoundEngine {
      * Check if audio is ready to play
      * @returns {boolean}
      */
-    _isAudioReady() {
-        return this.ctx && this.ctx.state === 'running' && this.initialized && !this.muted;
+    _isAudioReady(): boolean {
+        return !!(this.ctx && this.ctx.state === 'running' && this.initialized && !this.muted);
     }
 
-    toggleMute() {
+    toggleMute(): boolean {
         this.muted = !this.muted;
-        if (this.masterGain) {
+        if (this.masterGain && this.ctx) {
             this.masterGain.gain.setTargetAtTime(this.muted ? 0 : 0.4, this.ctx.currentTime, 0.1);
         }
         return this.muted;
     }
 
-    playTone(freq, type, duration, vol = 0.5, useEcho = true) {
-        if (!this._isAudioReady()) return;
+    playTone(freq: number, type: OscillatorType, duration: number, vol = 0.5, useEcho = true) {
+        if (!this._isAudioReady() || !this.ctx || !this.masterGain || !this.delayNode) return;
 
         try {
             const t = this.ctx.currentTime;
@@ -102,7 +113,7 @@ export class SoundEngine {
         }
     }
 
-    playCollect(index) {
+    playCollect(index: number) {
         this.playTone(this.notes[index % this.notes.length] * (1 + Math.floor(index / 6)), 'sine', 0.5, 0.3, true);
         this.playTone(this.notes[index % this.notes.length] * 2, 'triangle', 0.2, 0.1, true);
     }
@@ -125,7 +136,7 @@ export class SoundEngine {
     }
 
     startDrone() {
-        if (!this.ctx) return;
+        if (!this.ctx || !this.masterGain) return;
 
         try {
             const osc = this.ctx.createOscillator();

@@ -2,7 +2,15 @@
  * Dragon entity with AI state machine
  */
 export class Dragon {
-    constructor(c, r, level) {
+    c: number;
+    r: number;
+    state: 'SPAWNING' | 'IDLE' | 'CHARGING' | 'ATTACKING' | 'DESPAWNING';
+    timer: number;
+    life: number;
+    angle: number;
+    chargeMax: number;
+
+    constructor(c: number, r: number, level: number) {
         this.c = c;  // Column position
         this.r = r;  // Row position
         this.state = 'SPAWNING';

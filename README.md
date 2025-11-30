@@ -4,8 +4,7 @@
 
 > **Survive the Heat. Master the Drift. Reclaim the Light.**
 
-A procedurally generated, physics-based survival maze game built entirely in a single HTML file with no external dependencies.
-*Made with ❤️ and pure JavaScript.*
+A procedurally generated, physics-based survival maze game built with React, TypeScript, and Vite, deployable to Cloudflare Workers.
 
 ## 🎮 Overview
 
@@ -22,6 +21,7 @@ The game features a unique **inertial drift movement system**, requiring players
 - **💾 Persistence**: High scores, max levels, and best speedrun times are saved locally via `localStorage`.
 - **🎨 2.5D Aesthetics**: Parallax dust particles, glowing bloom effects, and dynamic lighting create a sense of depth on a 2D canvas.
 - **⌨️ Keyboard Support**: Arrow keys and WASD for desktop players.
+- **📱 Touch Support**: Touch and drag joystick controls for mobile players.
 
 ## 🕹️ Controls
 
@@ -31,91 +31,133 @@ The game supports both **Touch/Mouse** and **Keyboard** input.
 | :--- | :--- | :--- |
 | **Move** | Click/Touch and drag anywhere | Arrow keys or WASD |
 | **Stop** | Release to let friction take over | Release keys |
-| **Pause** | Tap pause button | - |
+| **Pause** | Tap pause button (HUD) | Escape key |
 | **Objective** | Follow the **Blue Chevron Arrow** to find the exit portal |
 
 ## 🎮 How to Play
 
-### Option 1: Play Online (Cloudflare Workers)
-The game is deployed as a Cloudflare Worker. Visit the deployed URL to play immediately.
+### Option 1: Play Online
+Visit the deployed Cloudflare Worker URL.
 
-### Option 2: Download Standalone HTML
-1. Download or build `crystal_cave.html` (see Development section below)
-2. Open it in any modern web browser (Chrome, Firefox, Edge, Safari)
-3. Turn up your volume for the procedural audio experience
+### Option 2: Run Locally
+1. Clone the repository
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Start the development server:
+   ```bash
+   npm run dev
+   ```
+4. Open the URL shown in the terminal (usually http://localhost:5173)
 
-### Option 3: Run Locally with Wrangler
-```bash
-npm run dev  # Starts local development server
-```
 
 ## 🛠️ Development
 
 ### Prerequisites
-- Node.js (v16+)
+- Node.js (v18+)
 - npm
 
 ### Project Structure
-The project uses a modular architecture that builds into a single file:
 ```
-src/
-├── game/
-│   ├── core/       # Constants, state management, game loop
-│   ├── entities/   # Cell, Dragon, Particle classes
-│   ├── systems/    # DataManager, MazeGenerator, Renderer, SoundEngine
-│   ├── ui/         # HUD, QuirkyMessages, ScreenManager
-│   └── utils/      # Helper functions
-├── styles/         # CSS styles
-├── templates/      # HTML template
-├── game_html.js    # Bundled output (auto-generated)
-└── index.js        # Cloudflare Worker entry point
-build/
-└── bundle-game.js  # Build script
-scripts/
-└── generate-standalone.js  # Standalone HTML generator
+crystal-cave/
+├── src/
+│   ├── game/                    # Game Logic (TypeScript)
+│   │   ├── core/
+│   │   │   ├── constants.ts     # Game configuration constants
+│   │   │   └── state.ts         # Type definitions and state interfaces
+│   │   ├── entities/
+│   │   │   ├── Cell.ts          # Maze cell entity
+│   │   │   ├── Dragon.ts        # Dragon enemy entity
+│   │   │   └── Particle.ts      # Particle effects entity
+│   │   ├── systems/
+│   │   │   ├── DataManager.ts   # localStorage persistence
+│   │   │   ├── MazeGenerator.ts # Procedural maze generation
+│   │   │   ├── Renderer.ts      # Canvas rendering system
+│   │   │   └── SoundEngine.ts   # Web Audio API sound synthesis
+│   │   ├── ui/
+│   │   │   └── QuirkyMessages.ts # Toast notification system
+│   │   ├── utils/
+│   │   │   └── helpers.ts       # Utility functions
+│   │   └── GameEngine.ts        # Main game loop and logic
+│   ├── App.tsx                  # React component (UI overlay)
+│   ├── main.tsx                 # Application entry point
+│   └── index.css                # Global styles
+├── tests/
+│   └── e2e/                     # Playwright E2E tests
+├── playwright.config.ts         # Playwright test configuration
+├── vite.config.ts               # Vite build configuration
+├── tsconfig.json                # TypeScript configuration
+└── wrangler.jsonc               # Cloudflare Workers configuration
 ```
 
 ### Build Commands
-- **`npm run build:bundle`**: Compiles modules into `src/game_html.js` (for Worker)
-- **`npm run build:standalone`**: Generates `dist/crystal_cave.html` (for local play)
-- **`npm run build`**: Runs both build steps
-- **`npm run dev`**: Starts local Wrangler development server at http://localhost:8787
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start local development server |
+| `npm run build` | Build for production |
+| `npm run preview` | Build and preview production build |
+| `npm run deploy` | Deploy to Cloudflare Workers |
+| `npm run test:e2e` | Run Playwright E2E tests |
+| `npm run test:e2e:ui` | Run tests with Playwright UI |
+| `npm run lint` | Run ESLint |
 
-### Deployment
-```bash
-npm run deploy
-```
 
 ## 🛠️ Technical Deep Dive
 
-For developers interested in how this works under the hood, the game is built from ~2100 lines of modular JavaScript that bundles into a single HTML file (~61KB).
+For developers interested in how this works under the hood:
 
 ### 1. The Game Loop
 The game uses a standard `requestAnimationFrame` loop. It separates logic into `update()` (physics, AI, collision) and `draw()` (rendering to HTML5 Canvas).
 
 ### 2. Architecture
+- **GameEngine Class**: Central game loop managing state, entities, and game logic with proper cleanup for React StrictMode compatibility.
+- **Renderer Module**: Functional rendering system with canvas context management and camera transforms.
 - **SoundEngine Class**: A wrapper for the AudioContext graph. It routes oscillators through gain nodes and a stereo delay line to create the cave's "echo" atmosphere.
-- **DataManager Class**: Handles serialization and deserialization of player stats to `localStorage`.
+- **DataManager Class**: Handles serialization and deserialization of player stats to `localStorage` with quota exceeded handling.
 - **Dragon Entities**: Implements a simple AI state machine.
     - *Spawning*: Visual warning before hitbox activation.
     - *Idle*: Waits for player proximity.
     - *Charging*: Locks rotation and displays attack vector (Warning Cone).
     - *Attacking*: Instantiates Particle objects with velocity vectors.
-- **generateMaze()**: Uses a recursive backtracker (DFS) to ensure a perfect maze (no loops, fully connected) is generated every level.
+- **MazeGenerator**: Uses a recursive backtracker (DFS) to ensure a perfect maze (no loops, fully connected) is generated every level.
 
 ### 3. Rendering Tricks
 - **Bloom**: Achieved by layering drawing operations with `shadowBlur` and `shadowColor` properties on the 2D context.
 - **Parallax**: Dust particles are rendered in world space but wrap around the camera view, creating an infinite background effect without heavy resource usage.
+- **Global Alpha Management**: Proper save/restore of canvas state to prevent rendering artifacts.
 
-## 🔒 Security & Quality Improvements
-
-Recent improvements to ensure reliability and security:
+## 🔒 Security & Quality
 
 - **Content Security Policy (CSP)**: Comprehensive security headers protect against XSS, clickjacking, and other injection attacks
 - **Robust Error Handling**: Game loop error boundaries prevent crashes, localStorage operations handle quota exceeded gracefully
 - **AudioContext Management**: Proper handling of browser autoplay policies with fallback mechanisms
 - **Performance Optimizations**: Canvas rendering optimizations, particle array safety limits to prevent memory leaks
 - **XSS Protection**: All dynamic content uses `.innerText` instead of `.innerHTML` for safe rendering
+- **E2E Testing**: Comprehensive Playwright test suite covering gameplay, navigation, and visual consistency across dev and production builds
+
+## 🧪 Testing
+
+The project includes comprehensive E2E tests using Playwright:
+
+```bash
+# Run all tests
+npm run test:e2e
+
+# Run tests with UI
+npm run test:e2e:ui
+
+# Run tests against both dev and preview modes
+npx playwright test --project=dev
+npx playwright test --project=preview
+```
+
+Tests cover:
+- Game initialization and rendering
+- Navigation between screens (Home, About, Stats, Pause)
+- Player movement and controls (keyboard and touch)
+- HUD display and updates
+- Visual consistency between development and production builds
 
 ## 🔮 Future Roadmap
 

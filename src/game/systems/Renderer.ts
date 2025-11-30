@@ -1,19 +1,31 @@
+import { COLORS } from '../core/constants';
+import { RenderState } from '../core/state';
+
 /**
  * Renderer - Main game rendering system
  */
-import { COLORS } from '../core/constants.js';
 
 // State will be injected - using _r prefix to avoid conflicts when bundled
-let _rCanvas, _rCtx, _rCamera, _rCellSize;
-let _rendererGameState, _rMaze, _rPlayer, _rGoal, _rDragons, _rShards, _rParticles, _rDust;
+let _rCanvas: HTMLCanvasElement;
+let _rCtx: CanvasRenderingContext2D;
+let _rCamera: { x: number; y: number };
+let _rendererGameState: string;
+let _rCellSize: number;
+let _rMaze: any[];
+let _rPlayer: any;
+let _rGoal: any;
+let _rDragons: any[];
+let _rShards: any[];
+let _rParticles: any[];
+let _rDust: any[];
 
-export function setRenderDependencies(deps) {
+export function setRenderDependencies(deps: { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D; camera: { x: number; y: number } }) {
     _rCanvas = deps.canvas;
     _rCtx = deps.ctx;
     _rCamera = deps.camera;
 }
 
-export function setRenderState(state) {
+export function setRenderState(state: RenderState) {
     _rendererGameState = state.gameState;
     _rCellSize = state.cellSize;
     _rMaze = state.maze;
@@ -26,10 +38,32 @@ export function setRenderState(state) {
 }
 
 export function draw() {
+    if (!_rCtx || !_rCanvas) return;
+
+    // Debug: Log render state every 60 frames (~1 second)
+    const frameCount = Math.floor(Date.now() / 16.67); // Approximate frame count
+    if (frameCount % 60 === 0) {
+        console.log('[Renderer.draw] State check:', {
+            gameState: _rendererGameState,
+            hasPlayer: !!_rPlayer,
+            hasDragons: !!_rDragons,
+            dragonsCount: _rDragons?.length || 0,
+            hasShards: !!_rShards,
+            shardsCount: _rShards?.length || 0,
+            hasMaze: !!_rMaze,
+            mazeCount: _rMaze?.length || 0,
+            player: _rPlayer ? { x: _rPlayer.x, y: _rPlayer.y } : null
+        });
+    }
+
+    // Force reset transform (critical for HMR in dev mode)
+    _rCtx.setTransform(1, 0, 0, 1, 0, 0);
+
     // Clear screen
     _rCtx.fillStyle = COLORS.bg;
     _rCtx.fillRect(0, 0, _rCanvas.width, _rCanvas.height);
 
+    // Apply camera translation
     _rCtx.save();
     const cx = _rCanvas.width / 2 - _rCamera.x;
     const cy = _rCanvas.height / 2 - _rCamera.y;
@@ -39,6 +73,8 @@ export function draw() {
     if (_rendererGameState === 'HOME' || _rendererGameState === 'ABOUT' || _rendererGameState === 'STATS') {
         drawMazeWalls(0.2);
         _rDust.forEach(p => p.draw(_rCtx));
+        // Ensure globalAlpha is reset after particle drawing
+        _rCtx.globalAlpha = 1.0;
         _rCtx.restore();
         return;
     }
@@ -63,14 +99,17 @@ export function draw() {
     // Draw particles
     _rParticles.forEach(p => p.draw(_rCtx));
     _rDust.forEach(p => p.draw(_rCtx));
+    
+    // Ensure globalAlpha is reset after all particle drawing
+    _rCtx.globalAlpha = 1.0;
 
     _rCtx.restore();
 
-    // Draw joystick (if active)
+    // Draw joystick (if active) - after restore, no transforms
     drawJoystick();
 }
 
-function drawMazeWalls(opacity) {
+function drawMazeWalls(opacity: number) {
     _rCtx.lineCap = 'round';
     _rCtx.lineJoin = 'round';
     _rCtx.shadowBlur = opacity > 0.5 ? 10 : 5;
@@ -104,7 +143,11 @@ function drawMazeWalls(opacity) {
     _rCtx.shadowBlur = 0;
 }
 
-function drawShards(time) {
+function drawShards(time: number) {
+    if (!_rShards || _rShards.length === 0) {
+        console.warn('[drawShards] No shards to draw!');
+        return;
+    }
     for (let s of _rShards) {
         if (!s.active) continue;
 
@@ -130,7 +173,7 @@ function drawShards(time) {
     }
 }
 
-function drawPortal(time) {
+function drawPortal(time: number) {
     const gx = (_rGoal.col * _rCellSize) + _rCellSize * 1.5;
     const gy = (_rGoal.row * _rCellSize) + _rCellSize * 1.5;
 
@@ -164,7 +207,11 @@ function drawPortal(time) {
     _rCtx.shadowBlur = 0;
 }
 
-function drawDragons(time) {
+function drawDragons(time: number) {
+    if (!_rDragons || _rDragons.length === 0) {
+        // Don't warn - it's normal to have 0 dragons sometimes
+        return;
+    }
     for (let d of _rDragons) {
         const dx = (d.c * _rCellSize) + _rCellSize * 1.5;
         const dy = (d.r * _rCellSize) + _rCellSize * 1.5;
@@ -228,7 +275,11 @@ function drawDragons(time) {
     }
 }
 
-function drawPlayer(time) {
+function drawPlayer(_time: number) {
+    if (!_rPlayer) {
+        console.error('[drawPlayer] No player data!');
+        return;
+    }
     // Invulnerability flicker
     if (_rPlayer.invulnerableTimer > 0) {
         _rCtx.globalAlpha = (Math.floor(Date.now() / 50) % 2 === 0) ? 0.3 : 0.8;
@@ -282,7 +333,7 @@ function drawPlayer(time) {
 
 function drawJoystick() {
     // This will be set from state
-    const joystickState = window.__joystickState;
+    const joystickState = (window as any).__joystickState;
     if (!joystickState || !joystickState.active || _rendererGameState !== 'PLAYING') return;
 
     const JOYSTICK_MAX_RADIUS = 70;
@@ -297,4 +348,11 @@ function drawJoystick() {
     _rCtx.arc(joystickState.current.x, joystickState.current.y, 35, 0, Math.PI * 2);
     _rCtx.fillStyle = 'rgba(255,255,255,0.5)';
     _rCtx.fill();
+}
+
+// HMR detection for debugging
+if (import.meta.hot) {
+    import.meta.hot.accept(() => {
+        console.warn('🔥 Renderer.ts reloaded by HMR! Module state reset.');
+    });
 }

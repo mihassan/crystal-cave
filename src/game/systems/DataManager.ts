@@ -2,10 +2,16 @@
  * DataManager - localStorage persistence system
  */
 export class DataManager {
+    data: { maxLevel: number; totalShards: number; bestTimes: { [key: number]: number } };
+    persistenceAvailable: boolean;
+    storageKey: string;
+    _quotaWarningShown: boolean;
+
     constructor() {
         this.data = { maxLevel: 1, totalShards: 0, bestTimes: {} };
         this.persistenceAvailable = true;
         this.storageKey = 'crystal_cave_data';
+        this._quotaWarningShown = false;
         this.load();
     }
 
@@ -13,13 +19,13 @@ export class DataManager {
      * Check if localStorage is available and working
      * @returns {boolean} True if localStorage is available
      */
-    _isStorageAvailable() {
+    _isStorageAvailable(): boolean {
         try {
             const testKey = '__storage_test__';
             localStorage.setItem(testKey, 'test');
             localStorage.removeItem(testKey);
             return true;
-        } catch (e) {
+        } catch (e: any) {
             console.warn('localStorage is not available:', e.message);
             return false;
         }
@@ -48,7 +54,7 @@ export class DataManager {
                     };
                 }
             }
-        } catch (e) {
+        } catch (e: any) {
             console.error('Failed to load game data:', e.message);
             // Data is corrupted, reset to defaults
             this.data = { maxLevel: 1, totalShards: 0, bestTimes: {} };
@@ -59,7 +65,7 @@ export class DataManager {
      * Save game data to localStorage
      * @returns {boolean} True if save was successful
      */
-    save() {
+    save(): boolean {
         if (!this.persistenceAvailable) {
             return false;
         }
@@ -68,7 +74,7 @@ export class DataManager {
             const serialized = JSON.stringify(this.data);
             localStorage.setItem(this.storageKey, serialized);
             return true;
-        } catch (e) {
+        } catch (e: any) {
             // Handle quota exceeded error
             if (e.name === 'QuotaExceededError') {
                 console.error('localStorage quota exceeded. Cannot save game progress.');
@@ -87,7 +93,7 @@ export class DataManager {
         }
     }
 
-    updateLevel(lvl) {
+    updateLevel(lvl: number): boolean {
         if (lvl > this.data.maxLevel) {
             this.data.maxLevel = lvl;
             return this.save();
@@ -95,12 +101,12 @@ export class DataManager {
         return true;
     }
 
-    addShards(count) {
+    addShards(count: number): boolean {
         this.data.totalShards += count;
         return this.save();
     }
 
-    saveTime(lvl, timeMs) {
+    saveTime(lvl: number, timeMs: number): boolean {
         if (!this.data.bestTimes[lvl] || timeMs < this.data.bestTimes[lvl]) {
             this.data.bestTimes[lvl] = timeMs;
             this.save();
@@ -109,7 +115,7 @@ export class DataManager {
         return false;
     }
 
-    getBestTime(lvl) {
+    getBestTime(lvl: number): number | null {
         return this.data.bestTimes[lvl] || null;
     }
 }
