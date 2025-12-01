@@ -14,7 +14,7 @@ export class Particle {
     decay: number;
     color: string;
 
-    constructor(x: number, y: number, type: string, vx = 0, vy = 0, color: string | null = null, cellSize = 60) {
+    constructor(x: number, y: number, type: string, vx = 0, vy = 0, color: string | null = null, cellSize = 60, dragonType?: string, customDecay?: number) {
         this.x = x;
         this.y = y;
         this.type = type;
@@ -36,8 +36,16 @@ export class Particle {
             this.vx = vx + (Math.random() - 0.5);
             this.vy = vy + (Math.random() - 0.5);
             this.size = Math.random() * 6 + 4;
-            this.decay = 0.08;
-            this.color = COLORS.fire;
+            this.decay = customDecay || 0.08;
+
+            // Color based on dragon type
+            if (dragonType === 'ICE') {
+                this.color = '#00d9ff';
+            } else if (dragonType === 'LIGHTNING') {
+                this.color = '#ffff00';
+            } else {
+                this.color = COLORS.fire;
+            }
         }
         else if (type === 'spark') {
             this.vx = (Math.random() - 0.5) * 10;

@@ -513,15 +513,32 @@ export class GameEngine {
             } else if (d.state === 'ATTACKING') {
                 d.timer += dt;
                 // Fire projectiles periodically
-                if (Math.floor(d.timer) % GAME_CONFIG.DRAGON_FIRE_RATE === 0 && Math.floor(d.timer - dt) % GAME_CONFIG.DRAGON_FIRE_RATE !== 0) {
-                    const speed = GAME_CONFIG.DRAGON_FIRE_SPEED;
-                    this.particles.push(new Particle(
-                        dx, dy, 'fire',
-                        Math.cos(d.angle) * speed,
-                        Math.sin(d.angle) * speed,
-                        null,
-                        this.cellSize
-                    ));
+                if (Math.floor(d.timer) % d.fireRate === 0 && Math.floor(d.timer - dt) % d.fireRate !== 0) {
+                    // Ice dragons shoot spread pattern
+                    if (d.type === 'ICE') {
+                        for (let i = -1; i <= 1; i++) {
+                            const spreadAngle = d.angle + (i * 0.3);
+                            this.particles.push(new Particle(
+                                dx, dy, 'fire',
+                                Math.cos(spreadAngle) * d.fireSpeed,
+                                Math.sin(spreadAngle) * d.fireSpeed,
+                                null,
+                                this.cellSize,
+                                d.type,
+                                d.fireDecay
+                            ));
+                        }
+                    } else {
+                        this.particles.push(new Particle(
+                            dx, dy, 'fire',
+                            Math.cos(d.angle) * d.fireSpeed,
+                            Math.sin(d.angle) * d.fireSpeed,
+                            null,
+                            this.cellSize,
+                            d.type,
+                            d.fireDecay
+                        ));
+                    }
                 }
                 // End attack
                 if (d.timer > GAME_CONFIG.DRAGON_ATTACK_DURATION) {

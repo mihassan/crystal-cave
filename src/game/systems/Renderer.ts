@@ -236,22 +236,22 @@ function drawDragons(time: number) {
             // Charge indicator
             if (d.state === 'CHARGING') {
                 const progress = d.timer / d.chargeMax;
-                // Fire range = DRAGON_FIRE_SPEED (4) * Fire particle lifetime (1.0 / 0.08 decay = 12.5 frames) = 50
-                const fireRange = 50;
-                _rCtx.fillStyle = `rgba(255, 100, 0, ${0.2 + progress * 0.3})`;
+                // Fire range varies by dragon type
+                const fireRangeBase = d.fireSpeed * (1.0 / d.fireDecay);
+                _rCtx.fillStyle = `rgba(${hexToRgb(d.color)}, ${0.2 + progress * 0.3})`;
                 _rCtx.beginPath();
                 _rCtx.moveTo(0, 0);
-                _rCtx.arc(0, 0, fireRange, -0.4, 0.4);
+                _rCtx.arc(0, 0, fireRangeBase, -0.4, 0.4);
                 _rCtx.closePath();
                 _rCtx.fill();
             }
 
             // Body
             _rCtx.fillStyle = COLORS.dragonBody;
-            _rCtx.strokeStyle = COLORS.dragonGlow;
+            _rCtx.strokeStyle = d.glowColor;
             _rCtx.lineWidth = 2;
             _rCtx.shadowBlur = 15;
-            _rCtx.shadowColor = COLORS.dragonGlow;
+            _rCtx.shadowColor = d.glowColor;
 
             _rCtx.beginPath();
             _rCtx.moveTo(15, 0);
@@ -263,7 +263,7 @@ function drawDragons(time: number) {
             _rCtx.stroke();
 
             // Eyes
-            _rCtx.fillStyle = d.state === 'CHARGING' ? '#fff' : '#ffff00';
+            _rCtx.fillStyle = d.state === 'CHARGING' ? '#fff' : d.color;
             _rCtx.beginPath();
             _rCtx.arc(5, 4, 2, 0, Math.PI * 2);
             _rCtx.arc(5, -4, 2, 0, Math.PI * 2);
@@ -275,6 +275,12 @@ function drawDragons(time: number) {
 
         _rCtx.globalAlpha = 1.0;
     }
+}
+
+// Helper function to convert hex to RGB components
+function hexToRgb(hex: string): string {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : '255, 77, 77';
 }
 
 function drawPlayer(_time: number) {
