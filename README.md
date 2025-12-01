@@ -114,18 +114,20 @@ The game uses a standard `requestAnimationFrame` loop. It separates logic into `
 - **GameEngine Class**: Central game loop managing state, entities, and game logic with proper cleanup for React StrictMode compatibility.
 - **Renderer Module**: Functional rendering system with canvas context management and camera transforms.
 - **SoundEngine Class**: A wrapper for the AudioContext graph. It routes oscillators through gain nodes and a stereo delay line to create the cave's "echo" atmosphere.
+- **VoiceManager Class**: Singleton handling Web Speech API interactions for quirky messages with pitch/rate variation.
 - **DataManager Class**: Handles serialization and deserialization of player stats to `localStorage` with quota exceeded handling.
-- **Dragon Entities**: Implements a simple AI state machine.
+- **Dragon Entities**: Implements a simple AI state machine with **3 distinct types** (Fire, Ice, Lightning) featuring unique stats and behaviors.
     - *Spawning*: Visual warning before hitbox activation.
     - *Idle*: Waits for player proximity.
     - *Charging*: Locks rotation and displays attack vector (Warning Cone).
-    - *Attacking*: Instantiates Particle objects with velocity vectors.
+    - *Attacking*: Instantiates Particle objects with velocity vectors (Single or Spread pattern).
 - **MazeGenerator**: Uses a recursive backtracker (DFS) to ensure a perfect maze (no loops, fully connected) is generated every level.
 
 ### 3. Rendering Tricks
 - **Bloom**: Achieved by layering drawing operations with `shadowBlur` and `shadowColor` properties on the 2D context.
 - **Parallax**: Dust particles are rendered in world space but wrap around the camera view, creating an infinite background effect without heavy resource usage.
 - **Global Alpha Management**: Proper save/restore of canvas state to prevent rendering artifacts.
+- **Frame-Rate Independence**: All physics and animations use delta-time scaling to ensure consistent speed across devices (60Hz vs 120Hz).
 
 ## 🔒 Security & Quality
 
@@ -159,12 +161,37 @@ Tests cover:
 - HUD display and updates
 - Visual consistency between development and production builds
 
-## 🔮 Future Roadmap
+## � Strategic Roadmap
 
-- [ ] **Power-ups**: Freeze bombs to temporarily disable dragons.
-- [ ] **Biomes**: Different color palettes and enemy types for deeper levels (Ice, Void, Poison).
-- [ ] **Leaderboards**: Online high-score integration.
-- [ ] **Gamepad Support**: Adding the Gamepad API for controller input.
+### Phase 1: "Juice" & Polish (Immediate)
+*Focus: Making the current game feel professional.*
+- [ ] **Visual Feedback**: Screen shake on impact, flash effects, hit stop (freeze frames), and dynamic camera (look-ahead).
+- [ ] **Particles & Lighting**: Post-processing bloom/glow, physical debris from walls, and smooth ribbon trails.
+- [ ] **UI Animation**: Animated score counters and smooth level transitions.
+
+### Phase 2: "The Hook" (Retention)
+*Focus: Giving players a reason to return.*
+- [ ] **Persistence**: Save currency (Gold/Crystals) and unlockables.
+- [ ] **Upgrade Shop**: Permanent upgrades (Lives, Speed, Magnet) and consumables.
+- [ ] **Unlockables**: New ship skins (Stealth, Tank) and trail effects (Rainbow, Fire).
+- [ ] **Achievements**: "Dragon Slayer", "Hoarder", etc.
+
+### Phase 3: Content & Variety
+*Focus: Removing repetition.*
+- [ ] **Biomes**: Visual themes for deeper levels (Crystal Caverns, Magma Core, Void Expanse).
+- [ ] **Power-ups**: Shield, Time Freeze, Magnet, and Radar spawns.
+- [ ] **Map Variety**: Traps (spikes, lava) and interactive elements (teleporters).
+- [ ] **New Enemies**: Stationary Turrets and Ghost Dragons.
+
+### Phase 4: Audio & Immersion
+- [ ] **Dynamic Music**: Layered tracks that react to gameplay intensity.
+- [ ] **Spatial Audio**: Directional sound effects for enemies.
+- [ ] **Voice Acting**: Stylized character voices.
+
+### Technical Goals
+- [ ] **PWA / Mobile App**: Wrap with CapacitorJS for App Store deployment.
+- [ ] **Haptics**: Vibration feedback for mobile.
+- [ ] **Gamepad Support**: Full controller integration.
 
 ## 📄 License
 
