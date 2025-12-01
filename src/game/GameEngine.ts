@@ -253,6 +253,12 @@ export class GameEngine {
         this.cols = size.cols;
         this.rows = size.rows;
 
+        // Reset lives and score when starting a new game (level 1)
+        if (lvl === 1) {
+            this.lives = 3;
+            this.score = 0;
+        }
+
         this.maze = generateMaze(this.cols, this.rows);
         this.shards = spawnCrystalShards(this.maze, this.cols, this.rows, this.cellSize);
 
@@ -588,6 +594,7 @@ export class GameEngine {
         if (this.player.invulnerableTimer > 0) return;
 
         this.lives--;
+        this.lives = Math.max(0, this.lives); // Prevent negative lives
         this.audio.playHit();
         showQuirky('HIT');
         this.updateUI();
