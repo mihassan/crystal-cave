@@ -99,7 +99,7 @@ export function draw() {
     // Draw particles
     _rParticles.forEach(p => p.draw(_rCtx));
     _rDust.forEach(p => p.draw(_rCtx));
-    
+
     // Ensure globalAlpha is reset after all particle drawing
     _rCtx.globalAlpha = 1.0;
 
@@ -236,10 +236,12 @@ function drawDragons(time: number) {
             // Charge indicator
             if (d.state === 'CHARGING') {
                 const progress = d.timer / d.chargeMax;
+                // Fire range = DRAGON_FIRE_SPEED (4) * Fire particle lifetime (1.0 / 0.08 decay = 12.5 frames) = 50
+                const fireRange = 50;
                 _rCtx.fillStyle = `rgba(255, 100, 0, ${0.2 + progress * 0.3})`;
                 _rCtx.beginPath();
                 _rCtx.moveTo(0, 0);
-                _rCtx.arc(0, 0, 120, -0.4, 0.4);
+                _rCtx.arc(0, 0, fireRange, -0.4, 0.4);
                 _rCtx.closePath();
                 _rCtx.fill();
             }
