@@ -65,10 +65,10 @@ export class Particle {
         }
     }
 
-    update() {
-        this.x += this.vx;
-        this.y += this.vy;
-        this.life -= this.decay;
+    update(dt: number = 1.0) {
+        this.x += this.vx * dt;
+        this.y += this.vy * dt;
+        this.life -= this.decay * dt;
     }
 
     draw(ctx: CanvasRenderingContext2D) {
@@ -83,7 +83,7 @@ export class Particle {
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.size * (this.type === 'fire' ? 1 : this.life), 0, Math.PI * 2);
         ctx.fill();
-        
+
         // Restore previous alpha to prevent affecting subsequent renders
         ctx.globalAlpha = prevAlpha;
     }

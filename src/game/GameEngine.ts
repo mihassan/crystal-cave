@@ -39,7 +39,7 @@ export class GameEngine {
 
     lastTime: number;
     animationFrameId: number;
-    
+
     // Store event handlers for cleanup
     private _boundHandlers: {
         resize: () => void;
@@ -241,7 +241,7 @@ export class GameEngine {
         window.addEventListener('mouseup', handleMouseup);
         window.addEventListener('touchmove', handleTouchmove, { passive: false });
         window.addEventListener('touchend', handleTouchend);
-        
+
         this.canvas.addEventListener('mousedown', handleMousedown);
         this.canvas.addEventListener('touchstart', handleTouchstart, { passive: false });
     }
@@ -323,7 +323,7 @@ export class GameEngine {
         showQuirky('IDLE');
     }
 
-    update() {
+    update(dt: number = 1.0) {
         if (this.state.value !== 'PLAYING') return;
 
         // Player movement
@@ -340,10 +340,10 @@ export class GameEngine {
             if (this.keys.right) ax = PHYSICS.ACCEL;
         }
 
-        this.player.vx += ax;
-        this.player.vy += ay;
-        this.player.vx *= PHYSICS.FRICTION;
-        this.player.vy *= PHYSICS.FRICTION;
+        this.player.vx += ax * dt;
+        this.player.vy += ay * dt;
+        this.player.vx *= Math.pow(PHYSICS.FRICTION, dt);
+        this.player.vy *= Math.pow(PHYSICS.FRICTION, dt);
 
         // Cap speed
         const speed = Math.sqrt(this.player.vx * this.player.vx + this.player.vy * this.player.vy);
@@ -359,8 +359,8 @@ export class GameEngine {
         }
 
         // Collision with walls
-        let nextX = this.player.x + this.player.vx;
-        let nextY = this.player.y + this.player.vy;
+        let nextX = this.player.x + this.player.vx * dt;
+        let nextY = this.player.y + this.player.vy * dt;
         let pc = Math.floor((this.player.x - this.cellSize) / this.cellSize);
         let pr = Math.floor((this.player.y - this.cellSize) / this.cellSize);
         pc = Math.max(0, Math.min(this.cols - 1, pc));
@@ -394,12 +394,13 @@ export class GameEngine {
         this.player.col = pc;
         this.player.row = pr;
 
-        // Camera follow
-        this.camera.x += (this.player.x - this.camera.x) * 0.1;
-        this.camera.y += (this.player.y - this.camera.y) * 0.1;
+        // Camera follow (scale lerp by dt)
+        const lerpSpeed = 0.1 * dt;
+        this.camera.x += (this.player.x - this.camera.x) * lerpSpeed;
+        this.camera.y += (this.player.y - this.camera.y) * lerpSpeed;
 
         // Dragon spawning
-        this.dragonSpawnTimer++;
+        this.dragonSpawnTimer += dt;
         const spawnRate = Math.max(
             GAME_CONFIG.DRAGON_SPAWN_RATE_MIN,
             GAME_CONFIG.DRAGON_SPAWN_RATE_BASE - (this.level * GAME_CONFIG.DRAGON_SPAWN_RATE_REDUCTION)
@@ -417,7 +418,7 @@ export class GameEngine {
         // Update particles
         for (let i = this.particles.length - 1; i >= 0; i--) {
             const p = this.particles[i];
-            p.update();
+            p.update(dt);
             if (p.life <= 0) {
                 this.particles.splice(i, 1);
                 continue;
@@ -440,7 +441,7 @@ export class GameEngine {
         }
 
         // Update dragons
-        this.updateDragons();
+        this.updateDragons(dt);
 
         // Check shards
         this.checkShards();
@@ -454,11 +455,12 @@ export class GameEngine {
 
         // Invulnerability
         if (this.player.invulnerableTimer > 0) {
-            this.player.invulnerableTimer--;
+            this.player.invulnerableTimer -= dt;
         }
     }
 
-    updateDragons() {
+
+    updateDragons(dt: number = 1.0) {
         for (let i = this.dragons.length - 1; i >= 0; i--) {
             const d = this.dragons[i];
             const dx = (d.c * this.cellSize) + this.cellSize * 1.5;
@@ -472,13 +474,13 @@ export class GameEngine {
 
             // State machine
             if (d.state === 'SPAWNING') {
-                d.timer++;
+                d.timer += dt;
                 if (d.timer > GAME_CONFIG.DRAGON_SPAWN_TIME) {
                     d.state = 'IDLE';
                     d.timer = 0;
                 }
             } else if (d.state === 'IDLE') {
-                d.life--;
+                d.life -= dt;
                 // Detect player proximity
                 if (distToPlayer < this.cellSize * GAME_CONFIG.DRAGON_DETECT_RANGE) {
                     d.state = 'CHARGING';
@@ -490,7 +492,7 @@ export class GameEngine {
                     d.state = 'DESPAWNING';
                 }
             } else if (d.state === 'CHARGING') {
-                d.timer++;
+                d.timer += dt;
                 // Cancel charge if player moves away
                 if (distToPlayer > this.cellSize * GAME_CONFIG.DRAGON_CHASE_RANGE) {
                     d.state = 'IDLE';
@@ -503,9 +505,9 @@ export class GameEngine {
                     this.audio.playRoar();
                 }
             } else if (d.state === 'ATTACKING') {
-                d.timer++;
+                d.timer += dt;
                 // Fire projectiles periodically
-                if (d.timer % GAME_CONFIG.DRAGON_FIRE_RATE === 0) {
+                if (Math.floor(d.timer) % GAME_CONFIG.DRAGON_FIRE_RATE === 0 && Math.floor(d.timer - dt) % GAME_CONFIG.DRAGON_FIRE_RATE !== 0) {
                     const speed = GAME_CONFIG.DRAGON_FIRE_SPEED;
                     this.particles.push(new Particle(
                         dx, dy, 'fire',
@@ -521,7 +523,7 @@ export class GameEngine {
                     d.timer = 0;
                 }
             } else if (d.state === 'DESPAWNING') {
-                d.timer++;
+                d.timer += dt;
                 if (d.timer > GAME_CONFIG.DRAGON_DESPAWN_TIME) {
                     this.dragons.splice(i, 1);
                 }
@@ -648,10 +650,11 @@ export class GameEngine {
                 console.log('🔄 [loop] ENTRY - Frame:', frame, 'State:', this.state.value);
             }
 
-            // const _dt = timestamp - this.lastTime;
+            // Calculate delta time and normalize to 60 FPS baseline
+            const dt = (timestamp - this.lastTime) / 16.67;
             this.lastTime = timestamp;
 
-            this.update();
+            this.update(dt);
 
             if (frame % 60 === 0) {
                 console.log('🎯 [loop] Update complete, about to setRenderState...');
@@ -692,13 +695,13 @@ export class GameEngine {
 
     cleanup() {
         console.log('🧹 [GameEngine.cleanup] Starting cleanup...');
-        
+
         // Cancel animation frame
         if (this.animationFrameId) {
             cancelAnimationFrame(this.animationFrameId);
             this.animationFrameId = 0;
         }
-        
+
         // Remove all event listeners
         if (this._boundHandlers) {
             window.removeEventListener('resize', this._boundHandlers.resize);
@@ -708,16 +711,16 @@ export class GameEngine {
             window.removeEventListener('mouseup', this._boundHandlers.mouseup);
             window.removeEventListener('touchmove', this._boundHandlers.touchmove);
             window.removeEventListener('touchend', this._boundHandlers.touchend);
-            
+
             this.canvas.removeEventListener('mousedown', this._boundHandlers.mousedown);
             this.canvas.removeEventListener('touchstart', this._boundHandlers.touchstart);
-            
+
             this._boundHandlers = null;
         }
-        
+
         // Clean up global joystick state
         delete (window as any).__joystickState;
-        
+
         console.log('✅ [GameEngine.cleanup] Cleanup complete');
     }
 }
