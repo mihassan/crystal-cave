@@ -12,24 +12,25 @@ function App() {
     const [levelStats, setLevelStats] = useState({ time: 0, best: 0, isRecord: false });
     const [careerStats, setCareerStats] = useState({ maxLevel: 1, totalShards: 0, bestTimes: {} as any });
     const [gameOverStats, setGameOverStats] = useState({ level: 1, score: 0 });
+    const [isMuted, setIsMuted] = useState(false);
 
     useEffect(() => {
         // Guard against re-initialization (React StrictMode double-mount)
         if (!canvasRef.current) return;
-        
+
         // Clean up any existing engine first (handles StrictMode remount)
         if (engineRef.current) {
             engineRef.current.cleanup();
             engineRef.current = null;
         }
-        
+
         engineRef.current = new GameEngine(canvasRef.current);
 
         // Event handlers with proper cleanup
         const handleHudUpdate = (e: any) => {
             setHudData(e.detail);
         };
-        
+
         const handleLevelComplete = (e: any) => {
             setGameState('TRANSITION');
             const engine = engineRef.current;
@@ -43,7 +44,7 @@ function App() {
                 });
             }
         };
-        
+
         const handlePaused = () => setGameState('PAUSED');
         const handleResumed = () => setGameState('PLAYING');
 
@@ -59,7 +60,7 @@ function App() {
             window.removeEventListener('level-complete', handleLevelComplete);
             window.removeEventListener('game-paused', handlePaused);
             window.removeEventListener('game-resumed', handleResumed);
-            
+
             if (engineRef.current) {
                 engineRef.current.cleanup();
                 engineRef.current = null;
@@ -79,7 +80,7 @@ function App() {
                     // Don't sync - we're in a UI-only screen
                     return;
                 }
-                
+
                 if (engineState !== gameState) {
                     // Sync state if it changed internally (e.g. game over)
                     if (engineState === 'GAMEOVER') {
@@ -97,6 +98,10 @@ function App() {
 
     const startGame = () => {
         if (engineRef.current) {
+            // Initialize audio on Play button click
+            if (!engineRef.current.audio.initialized) {
+                engineRef.current.audio.init();
+            }
             engineRef.current.startLevel(1);
             setGameState('PLAYING');
         }
@@ -139,6 +144,13 @@ function App() {
         }
     };
 
+    const toggleAudio = () => {
+        if (engineRef.current) {
+            const muted = engineRef.current.audio.toggleMute();
+            setIsMuted(muted);
+        }
+    };
+
     return (
         <div id="game-container">
             <canvas ref={canvasRef} id="gameCanvas"></canvas>
@@ -166,7 +178,17 @@ function App() {
                 </div>
                 <div style={{ flexGrow: 1 }}></div>
                 <div id="pause-btn" className="hud-btn" onClick={() => engineRef.current?.togglePause()}>||</div>
-                <div id="audio-btn" className="hud-btn" onClick={() => engineRef.current?.audio.toggleMute()}>🔊</div>
+                <div
+                    id="audio-btn"
+                    className="hud-btn"
+                    onClick={toggleAudio}
+                    style={{
+                        opacity: isMuted ? 0.4 : 1,
+                        textDecoration: isMuted ? 'line-through' : 'none'
+                    }}
+                >
+                    {isMuted ? '🔇' : '🔊'}
+                </div>
             </div>
 
             <div id="hint" className={gameState !== 'PLAYING' ? 'hidden' : ''}>Follow the Arrow to the Portal</div>

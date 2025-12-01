@@ -1,4 +1,5 @@
 import { QUIRKY_MSGS, QUIRKY_CONFIG } from '../core/constants';
+import { VoiceManager } from '../systems/VoiceManager';
 
 /**
  * Quirky Messages - Toast notification system
@@ -30,6 +31,13 @@ export function showQuirky(category: keyof typeof QUIRKY_MSGS) {
         el.style.color = QUIRKY_CONFIG.COLORS.COLLECT;
     } else {
         el.style.color = QUIRKY_CONFIG.COLORS.DEFAULT;
+    }
+
+    // Voice support
+    try {
+        VoiceManager.getInstance().speak(text);
+    } catch (e) {
+        console.warn('Voice synthesis failed:', e);
     }
 
     _qmLastMsgTime = now;
