@@ -7,10 +7,18 @@ import { VoiceManager } from '../systems/VoiceManager';
 
 let _qmMsgTimer: any = null;
 let _qmLastMsgTime = 0;
+let _qmCategoryTimes: Map<string, number> = new Map();
 
 export function showQuirky(category: keyof typeof QUIRKY_MSGS) {
     const now = Date.now();
-    // Anti-spam cooldown (except for hits which are urgent)
+    
+    // Per-category cooldown to prevent spam of specific message types
+    const lastCategoryTime = _qmCategoryTimes.get(category) || 0;
+    const categoryCooldown = category === 'NEAR_DRAGON' ? 8000 : QUIRKY_CONFIG.COOLDOWN;
+    
+    if (category !== 'HIT' && now - lastCategoryTime < categoryCooldown) return;
+    
+    // Also check global cooldown (except for hits which are urgent)
     if (category !== 'HIT' && now - _qmLastMsgTime < QUIRKY_CONFIG.COOLDOWN) return;
 
     const msgs = QUIRKY_MSGS[category];
@@ -33,9 +41,10 @@ export function showQuirky(category: keyof typeof QUIRKY_MSGS) {
         el.style.color = QUIRKY_CONFIG.COLORS.DEFAULT;
     }
 
-    // Voice support
+    _qmCategoryTimes.set(category, now);
+    // Voice support with cooldown
     try {
-        VoiceManager.getInstance().speak(text);
+        VoiceManager.getInstance().speak(text, QUIRKY_CONFIG.VOICE_COOLDOWN);
     } catch (e) {
         console.warn('Voice synthesis failed:', e);
     }

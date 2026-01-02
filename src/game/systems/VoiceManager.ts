@@ -4,11 +4,13 @@ export class VoiceManager {
     private synth: SpeechSynthesis;
     private voices: SpeechSynthesisVoice[];
     private preferredVoice: SpeechSynthesisVoice | null;
+    private lastSpeakTime: number;
 
     private constructor() {
         this.synth = window.speechSynthesis;
         this.voices = [];
         this.preferredVoice = null;
+        this.lastSpeakTime = 0;
 
         // Initialize voices
         this.loadVoices();
@@ -48,8 +50,12 @@ export class VoiceManager {
         }
     }
 
-    public speak(text: string) {
+    public speak(text: string, cooldown: number = 3000) {
         if (!this.synth || !this.preferredVoice) return;
+
+        // Check cooldown to prevent excessive voice repetition
+        const now = Date.now();
+        if (now - this.lastSpeakTime < cooldown) return;
 
         // Only cancel if something is already speaking
         // This prevents interference with Web Audio API initialization
@@ -70,5 +76,6 @@ export class VoiceManager {
         utterance.volume = 0.9;
 
         this.synth.speak(utterance);
+        this.lastSpeakTime = now;
     }
 }

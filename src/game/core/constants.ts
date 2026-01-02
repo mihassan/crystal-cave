@@ -91,6 +91,7 @@ export const QUIRKY_MSGS = {
 // Quirky message configuration
 export const QUIRKY_CONFIG = {
     COOLDOWN: 2000,  // ms between non-urgent messages
+    VOICE_COOLDOWN: 3000,  // ms between voice messages to prevent spam
     DISPLAY_DURATION: 2000,  // ms to show message
     COLORS: {
         HIT: '#ff6b6b',
