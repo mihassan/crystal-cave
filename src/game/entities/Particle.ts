@@ -71,6 +71,14 @@ export class Particle {
             this.decay = 0.02;
             this.color = '#fff';
         }
+        else if (type === 'player_bullet') {
+            // Player bullet - set by caller
+            this.vx = vx;
+            this.vy = vy;
+            this.size = 2;
+            this.decay = 0; // Life is managed externally for bullets
+            this.color = color || COLORS.playerBullet;
+        }
     }
 
     update(dt: number = 1.0) {
@@ -88,9 +96,30 @@ export class Particle {
             ctx.fillStyle = '#ff3300';
         }
 
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size * (this.type === 'fire' ? 1 : this.life), 0, Math.PI * 2);
-        ctx.fill();
+        // Player bullets glow effect
+        if (this.type === 'player_bullet') {
+            ctx.shadowBlur = 8;
+            ctx.shadowColor = this.color;
+            
+            // Draw as elongated streak in direction of movement
+            const angle = Math.atan2(this.vy, this.vx);
+            const length = 8;
+            
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            ctx.rotate(angle);
+            
+            ctx.beginPath();
+            ctx.ellipse(0, 0, length, this.size, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.restore();
+            ctx.shadowBlur = 0;
+        } else {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size * (this.type === 'fire' ? 1 : this.life), 0, Math.PI * 2);
+            ctx.fill();
+        }
 
         // Restore previous alpha to prevent affecting subsequent renders
         ctx.globalAlpha = prevAlpha;

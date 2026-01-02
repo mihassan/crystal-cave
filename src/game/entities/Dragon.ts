@@ -2,6 +2,8 @@
  * Dragon entity with AI state machine
  */
 
+import { GAME_CONFIG } from '../core/constants';
+
 export type DragonType = 'FIRE' | 'ICE' | 'LIGHTNING';
 
 export class Dragon {
@@ -18,6 +20,8 @@ export class Dragon {
     fireSpeed: number;
     fireRate: number;
     fireDecay: number;
+    health: number;
+    maxHealth: number;
 
     constructor(c: number, r: number, level: number, type?: DragonType) {
         this.c = c;  // Column position
@@ -45,6 +49,10 @@ export class Dragon {
         }
 
         this.type = type;
+
+        // Initialize health based on level
+        this.maxHealth = Math.floor(GAME_CONFIG.DRAGON_BASE_HEALTH + (level * GAME_CONFIG.DRAGON_HEALTH_PER_LEVEL));
+        this.health = this.maxHealth;
 
         // Initialize with defaults
         this.color = '#ff4d4d';

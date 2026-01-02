@@ -2,13 +2,13 @@
  * DataManager - localStorage persistence system
  */
 export class DataManager {
-    data: { maxLevel: number; totalShards: number; bestTimes: { [key: number]: number } };
+    data: { maxLevel: number; totalShards: number; totalKills: number; bestTimes: { [key: number]: number } };
     persistenceAvailable: boolean;
     storageKey: string;
     _quotaWarningShown: boolean;
 
     constructor() {
-        this.data = { maxLevel: 1, totalShards: 0, bestTimes: {} };
+        this.data = { maxLevel: 1, totalShards: 0, totalKills: 0, bestTimes: {} };
         this.persistenceAvailable = true;
         this.storageKey = 'crystal_cave_data';
         this._quotaWarningShown = false;
@@ -50,6 +50,7 @@ export class DataManager {
                     this.data = {
                         maxLevel: parsed.maxLevel || 1,
                         totalShards: parsed.totalShards || 0,
+                        totalKills: parsed.totalKills || 0,
                         bestTimes: parsed.bestTimes || {}
                     };
                 }
@@ -57,7 +58,7 @@ export class DataManager {
         } catch (e: any) {
             console.error('Failed to load game data:', e.message);
             // Data is corrupted, reset to defaults
-            this.data = { maxLevel: 1, totalShards: 0, bestTimes: {} };
+            this.data = { maxLevel: 1, totalShards: 0, totalKills: 0, bestTimes: {} };
         }
     }
 
@@ -103,6 +104,11 @@ export class DataManager {
 
     addShards(count: number): boolean {
         this.data.totalShards += count;
+        return this.save();
+    }
+
+    addKills(count: number): boolean {
+        this.data.totalKills += count;
         return this.save();
     }
 

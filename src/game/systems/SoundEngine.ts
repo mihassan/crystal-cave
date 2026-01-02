@@ -122,6 +122,16 @@ export class SoundEngine {
         this.playTone(100, 'sawtooth', 0.5, 0.8, false);
     }
 
+    playShoot() {
+        this.playTone(600, 'square', 0.1, 0.2, false);
+        this.playTone(400, 'square', 0.15, 0.15, false);
+    }
+
+    playExplosion() {
+        this.playTone(80, 'sawtooth', 0.6, 0.5, true);
+        this.playTone(40, 'square', 0.4, 0.3, false);
+    }
+
     playCharge() {
         this.playTone(50, 'square', 0.5, 0.05, false);
     }

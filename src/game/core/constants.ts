@@ -12,6 +12,7 @@ export const COLORS = {
     fire: '#ffaa00',
     player: '#ffffff',
     playerCore: '#00ffff',
+    playerBullet: '#00ffff',
     shard: '#ffffff',
     portalInner: '#ffffff',
     portalOuter: '#00ffff'
@@ -65,7 +66,18 @@ export const GAME_CONFIG = {
     DRAGON_SPAWN_RATE_REDUCTION: 20,  // per level
     DRAGON_SPAWN_RATE_MIN: 150,
     IDLE_TRIGGER_CHANCE: 0.005,
-    DUST_PARTICLES: 50
+    DUST_PARTICLES: 50,
+    // Player shooting
+    PLAYER_BULLET_SPEED: 7,
+    PLAYER_BULLET_COOLDOWN: 60,  // frames between shots
+    PLAYER_BULLET_DAMAGE: 1,
+    PLAYER_BULLET_LIFE: 30,  // frames before bullet expires
+    PLAYER_BULLET_STEER: 0.12, // lerp factor per frame for subtle homing
+    PLAYER_BULLET_MAX_TURN: 0.14, // radians per frame (≈8°) to avoid snapping
+    DRAGON_BASE_HEALTH: 3,
+    DRAGON_HEALTH_PER_LEVEL: 1.2,  // extra health per level
+    POINTS_PER_DRAGON: 100,
+    POINTS_PER_SHARD: 10
 };
 
 // Quirky messages for different events

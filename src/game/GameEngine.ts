@@ -33,6 +33,9 @@ export class GameEngine {
     score: number;
     level: number;
     dragonSpawnTimer: number;
+    kills: number;
+    levelKills: number;
+    shootCooldown: number;
 
     joystick: JoystickState;
     keys: { up: boolean; down: boolean; left: boolean; right: boolean };
@@ -95,6 +98,9 @@ export class GameEngine {
         this.score = 0;
         this.level = 1;
         this.dragonSpawnTimer = 0;
+        this.kills = 0;
+        this.levelKills = 0;
+        this.shootCooldown = 0;
 
         this.joystick = {
             active: false,
@@ -153,6 +159,10 @@ export class GameEngine {
             if (e.key === 'ArrowLeft' || e.key === 'a') this.keys.left = true;
             if (e.key === 'ArrowRight' || e.key === 'd') this.keys.right = true;
             if (e.key === 'Escape') this.togglePause();
+            if (e.key === ' ') {
+                e.preventDefault();
+                this.shoot();
+            }
         };
 
         const handleKeyup = (e: KeyboardEvent) => {
@@ -257,7 +267,11 @@ export class GameEngine {
         if (lvl === 1) {
             this.lives = 3;
             this.score = 0;
+            this.kills = 0;
         }
+
+        // Reset level-specific stats
+        this.levelKills = 0;
 
         this.maze = generateMaze(this.cols, this.rows);
         this.shards = spawnCrystalShards(this.maze, this.cols, this.rows, this.cellSize);
@@ -327,6 +341,35 @@ export class GameEngine {
         // Update HUD
         this.updateUI();
         showQuirky('IDLE');
+    }
+
+    shoot() {
+        if (this.state.value !== 'PLAYING') return;
+        if (this.shootCooldown > 0) return;
+
+        // Create bullet in direction player is facing
+        const bullet = new Particle(
+            this.player.x,
+            this.player.y,
+            'player_bullet'
+        );
+        
+        // Set bullet velocity in player's rotation direction
+        const speed = GAME_CONFIG.PLAYER_BULLET_SPEED;
+        bullet.vx = Math.cos(this.player.rotation) * speed;
+        bullet.vy = Math.sin(this.player.rotation) * speed;
+        bullet.life = GAME_CONFIG.PLAYER_BULLET_LIFE;
+        
+        this.particles.push(bullet);
+        
+        // Set cooldown
+        this.shootCooldown = GAME_CONFIG.PLAYER_BULLET_COOLDOWN;
+        
+        // Play shoot sound
+        this.audio.playShoot();
+        
+        // Add muzzle flash particle
+        this.particles.push(new Particle(this.player.x, this.player.y, 'spark'));
     }
 
     update(dt: number = 1.0) {
@@ -405,6 +448,11 @@ export class GameEngine {
         this.camera.x += (this.player.x - this.camera.x) * lerpSpeed;
         this.camera.y += (this.player.y - this.camera.y) * lerpSpeed;
 
+        // Decrement shoot cooldown
+        if (this.shootCooldown > 0) {
+            this.shootCooldown -= dt;
+        }
+
         // Dragon spawning
         this.dragonSpawnTimer += dt;
         const spawnRate = Math.max(
@@ -424,6 +472,56 @@ export class GameEngine {
         // Update particles
         for (let i = this.particles.length - 1; i >= 0; i--) {
             const p = this.particles[i];
+
+            // Explicit lifetime for player bullets (life set in frames)
+            if (p.type === 'player_bullet') {
+                p.life -= dt;
+                if (p.life <= 0) {
+                    this.particles.splice(i, 1);
+                    continue;
+                }
+            }
+
+            // Subtle homing for player bullets to ease aiming
+            if (p.type === 'player_bullet' && this.dragons.length > 0) {
+                let closestDist = Infinity;
+                let targetX = 0;
+                let targetY = 0;
+
+                for (const d of this.dragons) {
+                    if (d.state === 'SPAWNING' || d.state === 'DESPAWNING') continue;
+                    const dx = (d.c * this.cellSize) + this.cellSize * 1.5 - p.x;
+                    const dy = (d.r * this.cellSize) + this.cellSize * 1.5 - p.y;
+                    const dist = Math.hypot(dx, dy);
+                    if (dist < closestDist) {
+                        closestDist = dist;
+                        targetX = dx;
+                        targetY = dy;
+                    }
+                }
+
+                if (closestDist < Infinity && closestDist > 0.001) {
+                    const desiredAngle = Math.atan2(targetY, targetX);
+                    const currentAngle = Math.atan2(p.vy, p.vx);
+                    let delta = desiredAngle - currentAngle;
+
+                    // Normalize to [-PI, PI]
+                    delta = ((delta + Math.PI) % (Math.PI * 2)) - Math.PI;
+
+                    // Clamp turn rate to avoid snapping
+                    const maxTurn = GAME_CONFIG.PLAYER_BULLET_MAX_TURN * dt;
+                    if (delta > maxTurn) delta = maxTurn;
+                    if (delta < -maxTurn) delta = -maxTurn;
+
+                    const steer = GAME_CONFIG.PLAYER_BULLET_STEER * dt;
+                    const newAngle = currentAngle + delta * steer;
+
+                    const speed = GAME_CONFIG.PLAYER_BULLET_SPEED;
+                    p.vx = Math.cos(newAngle) * speed;
+                    p.vy = Math.sin(newAngle) * speed;
+                }
+            }
+
             p.update(dt);
             if (p.life <= 0) {
                 this.particles.splice(i, 1);
@@ -432,6 +530,63 @@ export class GameEngine {
             // Fire projectile collision
             if (p.type === 'fire' && Math.hypot(p.x - this.player.x, p.y - this.player.y) < this.player.radius + p.size) {
                 this.handleDeath();
+            }
+            
+            // Player bullet collision with dragons
+            if (p.type === 'player_bullet') {
+                for (let j = this.dragons.length - 1; j >= 0; j--) {
+                    const d = this.dragons[j];
+                    const dx = (d.c * this.cellSize) + this.cellSize * 1.5;
+                    const dy = (d.r * this.cellSize) + this.cellSize * 1.5;
+                    const dist = Math.hypot(p.x - dx, p.y - dy);
+                    
+                    // Hit radius check (dragon is about cellSize * 0.4 in size)
+                    if (dist < this.cellSize * 0.5 && d.state !== 'SPAWNING' && d.state !== 'DESPAWNING') {
+                        // Hit the dragon
+                        d.health -= GAME_CONFIG.PLAYER_BULLET_DAMAGE;
+                        
+                        // Remove bullet
+                        this.particles.splice(i, 1);
+                        
+                        // Spawn hit effect particles
+                        for (let k = 0; k < 5; k++) {
+                            this.particles.push(new Particle(p.x, p.y, 'spark'));
+                        }
+                        
+                        // Play hit sound
+                        this.audio.playHit();
+                        
+                        // Check if dragon is dead
+                        if (d.health <= 0) {
+                            // Spawn explosion particles
+                            for (let k = 0; k < 15; k++) {
+                                const explosion = new Particle(dx, dy, 'spark');
+                                explosion.vx = (Math.random() - 0.5) * 4;
+                                explosion.vy = (Math.random() - 0.5) * 4;
+                                this.particles.push(explosion);
+                            }
+                            
+                            // Award points
+                            this.score += GAME_CONFIG.POINTS_PER_DRAGON;
+                            
+                            // Increment kill counters
+                            this.kills++;
+                            this.levelKills++;
+                            this.data.addKills(1);
+                            
+                            // Remove dragon
+                            this.dragons.splice(j, 1);
+                            
+                            // Play explosion sound
+                            this.audio.playExplosion();
+                            
+                            // Update UI
+                            this.updateUI();
+                        }
+                        
+                        break;
+                    }
+                }
             }
         }
 
@@ -592,7 +747,7 @@ export class GameEngine {
             // Collection
             if (dist < this.cellSize * GAME_CONFIG.SHARD_COLLECT_RANGE) {
                 s.active = false;
-                this.score++;
+                this.score += GAME_CONFIG.POINTS_PER_SHARD;
                 this.data.addShards(1);
                 this.audio.playCollect(this.score);
                 showQuirky('COLLECT');
@@ -635,7 +790,12 @@ export class GameEngine {
 
         // Emit event or callback for UI
         const event = new CustomEvent('level-complete', {
-            detail: { level: this.level, time: duration }
+            detail: { 
+                level: this.level, 
+                time: duration,
+                kills: this.levelKills,
+                points: this.score
+            }
         });
         window.dispatchEvent(event);
     }

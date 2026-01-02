@@ -9,7 +9,7 @@ function App() {
 
     const [gameState, setGameState] = useState('HOME');
     const [hudData, setHudData] = useState({ lives: 3, score: 0, level: 1, time: 0 });
-    const [levelStats, setLevelStats] = useState({ time: 0, best: 0, isRecord: false });
+    const [levelStats, setLevelStats] = useState({ time: 0, best: 0, isRecord: false, kills: 0, points: 0 });
     const [careerStats, setCareerStats] = useState({ maxLevel: 1, totalShards: 0, bestTimes: {} as any });
     const [gameOverStats, setGameOverStats] = useState({ level: 1, score: 0 });
     const [isMuted, setIsMuted] = useState(false);
@@ -40,7 +40,9 @@ function App() {
                 setLevelStats({
                     time: e.detail.time,
                     best: best,
-                    isRecord: isRecord
+                    isRecord: isRecord,
+                    kills: e.detail.kills || 0,
+                    points: e.detail.points || 0
                 });
             }
         };
@@ -285,6 +287,14 @@ function App() {
                         <div className="stat-box">
                             <span className="stat-label">Best Record</span>
                             <span className="stat-val">{formatTime(levelStats.best)}</span>
+                        </div>
+                        <div className="stat-box">
+                            <span className="stat-label">Dragons Slain</span>
+                            <span className="stat-val">{levelStats.kills}</span>
+                        </div>
+                        <div className="stat-box">
+                            <span className="stat-label">Level Points</span>
+                            <span className="stat-val">{levelStats.points}</span>
                         </div>
                     </div>
                     {levelStats.isRecord && <div className="new-record">NEW RECORD!</div>}
