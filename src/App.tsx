@@ -276,7 +276,7 @@ function App() {
             {/* LEVEL CLEAR SCREEN */}
             {gameState === 'TRANSITION' && (
                 <div id="level-screen" className="overlay">
-                    <h2>Sector Cleared</h2>
+                    <h2>Level Cleared</h2>
                     <div className="stats-grid">
                         <div className="stat-box">
                             <span className="stat-label">Time Taken</span>
