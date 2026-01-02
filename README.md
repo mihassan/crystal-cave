@@ -8,7 +8,7 @@ A procedurally generated, physics-based survival maze game built with React, Typ
 
 ## 🎮 Overview
 
-**Crystal Cave: Dragon's Lair** is an infinite arcade survival game where players pilot a Frost Sentinel drone through a neon-soaked, shifting labyrinth. The goal is to collect energy shards, avoid phasing Fire Dragons, and locate the Warp Portal to descend deeper into the abyss.
+**Crystal Cave: Dragon's Lair** is an infinite arcade survival game where players pilot a Frost Sentinel drone through a neon-soaked, shifting labyrinth. The goal is to collect energy shards, fight or evade phasing Dragons (Fire, Ice, and Lightning types), and locate the Warp Portal to descend deeper into the abyss.
 
 The game features a unique **inertial drift movement system**, requiring players to master momentum rather than simple grid-based inputs.
 
@@ -17,6 +17,7 @@ The game features a unique **inertial drift movement system**, requiring players
 - **🚀 Physics-Based Drift**: Custom movement engine with acceleration, friction, and wall-sliding collision response.
 - **♾️ Procedural Generation**: Infinite levels generated using a Depth-First Search (DFS) maze algorithm. Maps grow in size and complexity as you progress.
 - **🧠 Dynamic AI**: Dragons use a Finite State Machine (Spawn -> Idle -> Charge -> Attack -> Despawn) with telegraphing mechanics (warning cones) for fair but challenging combat.
+- **⚔️ Combat System**: Shoot homing cyan bullets to fight dragons. Each dragon type (Fire, Ice, Lightning) has unique health and attack patterns. Earn points for each kill.
 - **🎧 Procedural Audio**: A custom `SoundEngine` class synthesizes all sound effects (echoing roars, musical chimes, ambient drones) in real-time using the Web Audio API. No MP3/WAV assets required.
 - **💾 Persistence**: High scores, max levels, and best speedrun times are saved locally via `localStorage`.
 - **🎨 2.5D Aesthetics**: Parallax dust particles, glowing bloom effects, and dynamic lighting create a sense of depth on a 2D canvas.
@@ -30,6 +31,7 @@ The game supports both **Touch/Mouse** and **Keyboard** input.
 | Action | Touch/Mouse | Keyboard |
 | :--- | :--- | :--- |
 | **Move** | Click/Touch and drag anywhere | Arrow keys or WASD |
+| **Shoot** | N/A (keyboard only) | Spacebar |
 | **Stop** | Release to let friction take over | Release keys |
 | **Pause** | Tap pause button (HUD) | Escape key |
 | **Objective** | Follow the **Blue Chevron Arrow** to find the exit portal |

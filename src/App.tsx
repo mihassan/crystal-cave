@@ -218,10 +218,10 @@ function App() {
                         <p><strong>OBJECTIVE:</strong> Pilot the Frost Sentinel drone deep into the Dragon's Lair. Locate the
                             <strong> Warp Portal</strong> to advance.
                         </p>
-                        <p><strong>THREATS:</strong> Fire Dragons phase in and out. If you see a <span
+                        <p><strong>THREATS:</strong> Dragons (Fire, Ice, Lightning types) phase in and out. If you see a <span
                             style={{ color: '#ffaa00' }}>Orange Circle</span>, they are charging. Move out of the zone
                             immediately!</p>
-                        <p><strong>CONTROLS:</strong> Touch and drag anywhere to drift. Use inertia to glide past enemies.</p>
+                        <p><strong>CONTROLS:</strong> Touch and drag anywhere to drift. Press <strong>Spacebar</strong> to shoot cyan bullets at dragons. Use inertia to glide past enemies.</p>
                         <p><strong>DEFENSE:</strong> Taking a hit activates a temporary shield. Use it to escape.</p>
                     </div>
                     <div className="btn-group" style={{ marginTop: '20px' }}>
@@ -243,6 +243,10 @@ function App() {
                             <span className="stat-label">Total Shards</span>
                             <span className="stat-val">{careerStats.totalShards}</span>
                         </div>
+                        <div className="stat-box">
+                            <span className="stat-label">Dragons Slain</span>
+                            <span className="stat-val">{engineRef.current?.data.data.totalKills || 0}</span>
+                        </div>
                     </div>
                     <h3>Speedrun Records</h3>
                     <div id="stats-list" className="scroll-list">
@@ -251,7 +255,7 @@ function App() {
                         ) : (
                             Object.keys(careerStats.bestTimes).sort((a: any, b: any) => a - b).map((lvl: any) => (
                                 <div className="list-row" key={lvl}>
-                                    <span>Sector {lvl}</span>
+                                    <span>Level {lvl}</span>
                                     <span style={{ color: '#ffd700' }}>{formatTime(careerStats.bestTimes[lvl])}</span>
                                 </div>
                             ))
@@ -300,7 +304,7 @@ function App() {
                     {levelStats.isRecord && <div className="new-record">NEW RECORD!</div>}
                     <p style={{ fontSize: '0.9rem', marginTop: '10px' }}>Hull Integrity Restored (+1 Life)</p>
                     <div className="btn-group">
-                        <button onClick={nextLevel}>Next Sector</button>
+                        <button onClick={nextLevel}>Next Level</button>
                         <button className="secondary" onClick={replayLevel}>Replay for Time</button>
                         <button className="secondary" onClick={goToMainMenu}>Quit</button>
                     </div>
@@ -314,12 +318,16 @@ function App() {
                     <p>Signal Lost.</p>
                     <div className="stats-grid">
                         <div className="stat-box">
-                            <span className="stat-label">Sector</span>
+                            <span className="stat-label">Level</span>
                             <span className="stat-val" style={{ color: '#4cc9f0' }}>{gameOverStats.level}</span>
                         </div>
                         <div className="stat-box">
                             <span className="stat-label">Shards</span>
                             <span className="stat-val">{gameOverStats.score}</span>
+                        </div>
+                        <div className="stat-box">
+                            <span className="stat-label">Dragons Slain</span>
+                            <span className="stat-val">{engineRef.current?.kills || 0}</span>
                         </div>
                     </div>
                     <div className="btn-group">
