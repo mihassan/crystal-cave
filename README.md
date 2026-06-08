@@ -2,6 +2,8 @@
 
 # Crystal Cave: Dragon's Lair 💎🐉
 
+**Status: [Portfolio]**
+
 > **Survive the Heat. Master the Drift. Reclaim the Light.**
 
 A procedurally generated, physics-based survival maze game built with React, TypeScript, and Vite, deployable to Cloudflare Workers.
