@@ -8,6 +8,13 @@
 
 A procedurally generated, physics-based survival maze game built with React, TypeScript, and Vite, deployable to Cloudflare Workers.
 
+## Current Scope
+
+- Playable arcade survival loop with procedurally generated maze levels.
+- Physics-based movement, enemy AI, combat, scoring, and local high-score persistence.
+- Desktop keyboard controls plus touch/mouse movement support.
+- Playwright E2E coverage for game initialization, navigation, controls, HUD behavior, and visual consistency.
+
 ## 🎮 Overview
 
 **Crystal Cave: Dragon's Lair** is an infinite arcade survival game where players pilot a Frost Sentinel drone through a neon-soaked, shifting labyrinth. The goal is to collect energy shards, fight or evade phasing Dragons (Fire, Ice, and Lightning types), and locate the Warp Portal to descend deeper into the abyss.
@@ -40,10 +47,8 @@ The game supports both **Touch/Mouse** and **Keyboard** input.
 
 ## 🎮 How to Play
 
-### Option 1: Play Online
-Visit the deployed Cloudflare Worker URL.
+### Run Locally
 
-### Option 2: Run Locally
 1. Clone the repository
 2. Install dependencies:
    ```bash
@@ -165,7 +170,17 @@ Tests cover:
 - HUD display and updates
 - Visual consistency between development and production builds
 
-## � Strategic Roadmap
+## Verification
+
+```bash
+npm run lint
+npm run build
+npm run test:e2e
+```
+
+## Future Work
+
+These ideas are optional polish and expansion paths. They are not required for the current playable game loop.
 
 ### Phase 1: "Juice" & Polish (Immediate)
 *Focus: Making the current game feel professional.*

@@ -12,7 +12,7 @@ You need to have both dev and preview servers running:
 # Terminal 1: Start dev server
 npm run dev
 
-# Terminal 2: Start preview server  
+# Terminal 2: Start preview server
 npm run preview
 
 # Terminal 3: Run tests
